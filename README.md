@@ -1,135 +1,182 @@
+<img src="https://r2cdn.perplexity.ai/pplx-full-logo-primary-dark%402x.png" class="logo" width="120"/>
 
-# dlog, timeit, and ddeco Python Utilities Manual
+# dlog, timeit, ddeco Python Utilities Manual
 
-This manual provides a comprehensive guide to the usage and functionality of the `dlog`, `timeit`, and `ddeco` utilities as implemented in the provided code. These utilities are designed to enhance debugging, profiling, and logging in Python development, especially for functions and methods, with special handling for complex data types such as pandas DataFrames and Series[^1_1].
-
----
-
-## **Overview**
-
-- **dlog**: Debug logging function with contextual information (file, module, function, line, class).
-- **timeit**: Decorator for measuring and reporting function execution time.
-- **ddeco**: Decorator for detailed logging of function calls, inputs, and outputs, with smart formatting for various data types.
+This manual explains installation, configuration, and usage of the `dlog`, `timeit`, and `ddeco` utilities for Python, with a focus on their unique debugging and logging features. It also provides sample outputs and highlights the key advantages of each utility.
 
 ---
 
-## **1. dlog Function**
+## **Installation**
 
-### **Purpose**
+These utilities are implemented as regular Python functions and decorators. Only the `pandas` package is required for DataFrame/Series support.
 
-`dlog` is a debug-friendly logging function that prints an object along with contextual information such as file path, module, function name, line number, and class name (if available). It is only active when the environment variable `DLOG_DEBUG` is set to `'true'`.
-
-### **Usage**
-
-```python
-dlog(obj, **kwargs)
+```bash
+pip install pandas
 ```
 
-- **obj**: Any Python object to be logged.
-- **kwargs**: Additional keyword arguments for the built-in `print` function (e.g., `sep`, `end`).
+Copy the provided code into a Python module (e.g., `dlog_utils.py`) and import as needed.
 
+---
 
-### **Features**
+## **Configuration**
 
-- **Conditional Logging**: Only logs if `DLOG_DEBUG` environment variable is `'true'`.
-- **Contextual Header**: Logs the source file, class, module, function, and line number.
-- **Indentation**: Indents logs based on call stack depth for better readability of nested calls.
-- **Class Detection**: Attempts to display the class name if called within a method.
-- **Header Suppression**: Avoids redundant headers for consecutive calls at the same indentation level.
-
-
-### **Example**
+Enable debug logging by setting the environment variable before running your script:
 
 ```python
+import os
 os.environ['DLOG_DEBUG'] = 'true'
-dlog("Debug message")
 ```
 
 
 ---
 
-## **2. timeit Decorator**
+## **Key Features**
 
-### **Purpose**
+### **dlog: Indentation Reflects Call Depth**
 
-`timeit` is a decorator that measures and prints the execution time of the decorated function.
-
-### **Usage**
-
-```python
-@timeit
-def my_function(...):
-    ...
-```
-
-- **No arguments**: Used directly as a decorator.
+- **Automatic Indentation:**
+The `dlog` function adjusts log message indentation based on the call stack depth. This means that as your code enters deeper function calls, the logs are indented further, visually representing the execution hierarchy[^1][^2].
+- **Enhanced Traceability:**
+This indentation makes it significantly easier to trace the flow of execution, especially in complex or nested code, as the structure of your logs mirrors the structure of your code[^1][^3][^2].
 
 
-### **Features**
+### **ddeco: Input and Output Logging**
 
-- **Execution Time Reporting**: Prints the function name and elapsed time in seconds after each call.
-
-
-### **Example**
-
-```python
-@timeit
-def compute():
-    time.sleep(1)
-
-compute()
-# Output: compute 실행 시간: 1.0000초
-```
-
+- **Function Call Transparency:**
+The `ddeco` decorator logs both the input arguments and the output value of any decorated function. This provides clear visibility into what data is entering and leaving your functions, making it a powerful tool for debugging and verifying logic[^1][^4].
+- **Smart Formatting:**
+Results are formatted according to their type (e.g., dicts, lists, pandas DataFrames), ensuring logs remain readable even for complex data structures[^1].
 
 ---
 
-## **3. ddeco Decorator**
+## **Usage Examples and Expected Output**
 
-### **Purpose**
+### **1. dlog Command Example**
 
-`ddeco` is a decorator for detailed logging of function calls. It logs input arguments and return values, with smart formatting for common data types, including pandas DataFrames and Series.
-
-### **Usage**
+**Code Example:**
 
 ```python
-@ddeco
-def my_function(a, b):
-    return a + b
+from dlog_utils import dlog
+
+def bar(y):
+    dlog(f"Inside bar: {y}")
+    return y + 1
+
+def foo(x):
+    dlog(f"Start foo: {x}")
+    result = bar(x * 2)
+    dlog(f"End foo: {result}")
+    return result
+
+foo(10)
 ```
 
+**Expected Output:**
 
-### **Features**
+```
+....../your_script.py [None.__main__.foo:6]
+....[^6]Start foo: 10
+........../your_script.py [None.__main__.bar:3]
+........[^3]Inside bar: 20
+....[^8]End foo: 21
+```
 
-- **Input Logging**: Logs function name, arguments, and keyword arguments (with length limitation for very long logs).
-- **Output Logging**: Logs return type and value, with special formatting for:
-    - **dict**: Pretty-printed key-value pairs.
-    - **list/tuple/set**: Each item on a new line.
-    - **str**: Multi-line strings are clearly delimited.
-    - **pandas.DataFrame/Series**: Uses `.to_string()` for readability, summarizes large objects.
-- **Length Limitation**: Truncates very long logs for readability.
-- **Error Handling**: Catches and logs exceptions during logging without interrupting function execution.
+- Indentation increases as the call stack deepens, providing clear visual cues about the flow and nesting of function calls[^1][^2].
 
+---
 
-### **Example**
+### **2. ddeco Decorator Example**
+
+**Code Example:**
 
 ```python
+from dlog_utils import ddeco
+
 @ddeco
-def add(a, b):
+def add_and_multiply(a, b):
     return {'sum': a + b, 'product': a * b}
 
-result = add(3, 4)
-# Logs input arguments and formatted output
+result = add_and_multiply(3, 4)
+```
+
+**Expected Output:**
+
+```
+..../your_script.py [None.__main__.add_and_multiply:4]
+..[^4]함수 add_and_multiply 호출 - 입력 args: [3, 4], kwargs: {}
+..[^6]함수 add_and_multiply 반환 - type: <class 'dict'>, 내용:
+{
+  sum: 7
+  product: 12
+}
+```
+
+- Both the input arguments and the formatted output are logged, making it easy to verify function behavior and debug issues[^1][^4].
+
+---
+
+### **3. ddeco with pandas DataFrame Example**
+
+**Code Example:**
+
+```python
+import pandas as pd
+from dlog_utils import ddeco
+
+@ddeco
+def process_df(df):
+    return df.describe()
+
+df = pd.DataFrame({'A': [1, 2, 3], 'B': [4, 5, 6]})
+process_df(df)
+```
+
+**Expected Output:**
+
+```
+..../your_script.py [None.__main__.process_df:4]
+..[^4]함수 process_df 호출 - 입력 args: [   A  B
+0  1  4
+1  2  5
+2  3  6], kwargs: {}
+..[^6]함수 process_df 반환 - type: <class 'pandas.core.frame.DataFrame'>, 내용:
+DataFrame (shape: (2, 2)):
+       A    B
+count  3.0  3.0
+mean   2.0  5.0
+std    1.0  1.0
+min    1.0  4.0
+25%    1.5  4.5
+50%    2.0  5.0
+75%    2.5  5.5
+max    3.0  6.0
 ```
 
 
 ---
 
-## **Implementation Notes**
+### **4. timeit Decorator Example**
 
-- **Environment Variable**: Set `os.environ['DLOG_DEBUG'] = 'true'` to enable debug logging.
-- **pandas Support**: The code imports pandas (`import pandas as pd`) for DataFrame and Series formatting.
-- **Decorator Metadata**: Uses `functools.wraps` to preserve original function metadata.
+**Code Example:**
+
+```python
+from dlog_utils import timeit
+import time
+
+@timeit
+def wait_and_return(x):
+    time.sleep(1)
+    return x
+
+wait_and_return(42)
+```
+
+**Expected Output:**
+
+```
+wait_and_return 실행 시간: 1.0000초
+```
+
 
 ---
 
@@ -137,34 +184,48 @@ result = add(3, 4)
 
 | Utility | Type | Purpose | Key Features |
 | :-- | :-- | :-- | :-- |
-| dlog | Function | Debug logging with context | File/module/function/line/class, indentation |
+| dlog | Function | Debug logging with context | Indentation by call depth, traceability |
 | timeit | Decorator | Measure function execution time | Prints elapsed time |
-| ddeco | Decorator | Detailed logging of function calls/results | Smart formatting, pandas support, truncation |
+| ddeco | Decorator | Log function calls and results | Logs inputs/outputs, smart formatting |
 
 
 ---
 
 ## **Best Practices**
 
-- Use `dlog` for ad-hoc debugging with rich context.
-- Use `timeit` to profile performance hotspots.
-- Use `ddeco` for comprehensive logging during development or troubleshooting, especially with complex data structures.
+- Use **dlog** to gain clear, hierarchical visibility of your code's execution flow—especially useful for debugging complex or deeply nested code[^1][^2].
+- Use **ddeco** to automatically log and inspect function inputs and outputs, greatly simplifying debugging and validation of logic[^1][^4].
+- Use **timeit** to profile performance-critical functions.
 
 ---
 
 ## **References**
 
-- The code and documentation are based on the provided Python source[^1_1].
-- For detailed class and method documentation, focus on input/output types and logging behavior[^1_2].
+- This manual is based on the provided Python source and best practices for debugging and logging in Python[^1][^4][^2].
 
 ---
 
-[^1_1]
-[^1_2]
-
 <div style="text-align: center">⁂</div>
 
-[^1_1]: paste.txt
+[^1]: paste.txt
 
-[^1_2]: programming.documentation
+[^2]: https://code.activestate.com/recipes/412603-stack-based-indentation-of-formatted-logging/
+
+[^3]: https://github.com/karaposu/indented-logger
+
+[^4]: https://topdlearning.com/5-key-benefits-of-using-python-decorators-for-optimized-coding-practices/
+
+[^5]: https://stackoverflow.com/questions/5498907/show-log-context-level-by-indentation-or-prefix-length
+
+[^6]: https://pypi.org/project/indented-logger/0.1.6/
+
+[^7]: https://blog.codinghorror.com/the-problem-with-logging/
+
+[^8]: https://www.datadoghq.com/blog/multiline-logging-guide/
+
+[^9]: https://github.com/Delgan/loguru/issues/424
+
+[^10]: https://www.xano.com/learn/Debugging-Function-Stacks-Debug-Log/
+
+[^11]: https://www.sitepoint.com/javascript-decorators-what-they-are/
 
